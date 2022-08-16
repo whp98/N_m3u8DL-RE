@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "N_m3u8DL-RE": {
+      "commandName": "Project",
+      "commandLineArgs": " -h"
+    }
+  }
+}
