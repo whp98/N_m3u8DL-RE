@@ -580,7 +580,7 @@ namespace N_m3u8DL_RE.DownloadManager
                     }
                     else {
                         PartialCombineMultipleFiles(files);
-                        var files = FileDic.Values.Select(v => v!.ActualFilePath).OrderBy(s => s).ToArray();
+                        files = FileDic.Values.Select(v => v!.ActualFilePath).OrderBy(s => s).ToArray();
                         mergeSuccess = MergeUtil.MergeByFFmpeg(DownloaderConfig.MyOptions.FFmpegBinaryPath!, files, Path.ChangeExtension(ffOut, null), ext, useAACFilter);
                         if (mergeSuccess) output = ffOut;
                     }
