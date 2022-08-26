@@ -90,10 +90,8 @@ namespace N_m3u8DL_RE.Util
             string addPoster = "-map 1 -c:v:1 copy -disposition:v:1 attached_pic";
             ddpAudio = (File.Exists($"{Path.GetFileNameWithoutExtension(outputPath + ".mp4")}.txt") ? File.ReadAllText($"{Path.GetFileNameWithoutExtension(outputPath + ".mp4")}.txt") : "");
             if (!string.IsNullOrEmpty(ddpAudio)) useAACFilter = false;
-
-            foreach (string t in files)
-            {
-                command.Append(Path.GetFileName(t) + "|");
+            foreach (string t in files){
+              command.Append(Path.GetFileName(t) + "|");
             }
 
             switch (muxFormat.ToUpper())

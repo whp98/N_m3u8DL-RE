@@ -110,6 +110,76 @@ namespace N_m3u8DL_RE.DownloadManager
             }
         }
 
+        //大量文件分部分二进制合并
+        public static void PartialCombineMultipleFiles(string[] files)
+        {
+            int div = 0;
+            if (files.Length <= 90000)
+                div = 100;
+            else
+                div = 200;
+
+            string outputName = Path.GetDirectoryName(files[0]) + "\\T";
+            int index = 0; //序号
+
+            //按照div的容量分割为小数组
+            string[][] li = Enumerable.Range(0, files.Count() / div + 1).Select(x => files.Skip(x * div).Take(div).ToArray()).ToArray();
+            foreach (var items in li)
+            {
+                if (items.Count() == 0)
+                    continue;
+                CombineMultipleFilesIntoSingleFile(items, outputName + index.ToString("0000") + ".ts");
+                //合并后删除这些文件
+                foreach (var item in items)
+                {
+                    File.Delete(item);
+                }
+                index++;
+            }
+        }
+
+        /// <summary>
+        /// 输入一堆已存在的文件，合并到新文件
+        /// </summary>
+        /// <param name="files"></param>
+        /// <param name="outputFilePath"></param>
+        public static void CombineMultipleFilesIntoSingleFile(string[] files, string outputFilePath)
+        {
+            //同名文件已存在的共存策略
+            if (File.Exists(outputFilePath))
+            {
+                outputFilePath = Path.Combine(Path.GetDirectoryName(outputFilePath),
+                    Path.GetFileNameWithoutExtension(outputFilePath) + "_" + DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss") + Path.GetExtension(outputFilePath));
+            }
+            if (files.Length == 1)
+            {
+                FileInfo fi = new FileInfo(files[0]);
+                fi.MoveTo(outputFilePath);
+                return;
+            }
+
+            if (!Directory.Exists(Path.GetDirectoryName(outputFilePath)))
+                Directory.CreateDirectory(Path.GetDirectoryName(outputFilePath));
+
+            string[] inputFilePaths = files;
+            using (var outputStream = File.Create(outputFilePath))
+            {
+                foreach (var inputFilePath in inputFilePaths)
+                {
+                    if (inputFilePath == "")
+                        continue;
+                    using (var inputStream = File.OpenRead(inputFilePath))
+                    {
+                        // Buffer size can be passed as the second argument.
+                        inputStream.CopyTo(outputStream);
+                    }
+                    //Console.WriteLine("The file {0} has been processed.", inputFilePath);
+                }
+            }
+            //Global.ExplorerFile(outputFilePath);
+        }
+
+
 
         private async Task<bool> DownloadStreamAsync(StreamSpec streamSpec, ProgressTask task, SpeedContainer speedContainer)
         {
@@ -503,8 +573,18 @@ namespace N_m3u8DL_RE.DownloadManager
                     {
                         Logger.WarnMarkUp($"{Path.GetFileName(ffOut)} => {Path.GetFileName(ffOut = Path.ChangeExtension(ffOut, $"copy" + Path.GetExtension(ffOut)))}");
                     }
-                    mergeSuccess = MergeUtil.MergeByFFmpeg(DownloaderConfig.MyOptions.FFmpegBinaryPath!, files, Path.ChangeExtension(ffOut, null), ext, useAACFilter);
-                    if (mergeSuccess) output = ffOut;
+                    if (files.Length < 1800)
+                    {
+                        mergeSuccess = MergeUtil.MergeByFFmpeg(DownloaderConfig.MyOptions.FFmpegBinaryPath!, files, Path.ChangeExtension(ffOut, null), ext, useAACFilter);
+                        if (mergeSuccess) output = ffOut;
+                    }
+                    else {
+                        PartialCombineMultipleFiles(files);
+                        var files = FileDic.Values.Select(v => v!.ActualFilePath).OrderBy(s => s).ToArray();
+                        mergeSuccess = MergeUtil.MergeByFFmpeg(DownloaderConfig.MyOptions.FFmpegBinaryPath!, files, Path.ChangeExtension(ffOut, null), ext, useAACFilter);
+                        if (mergeSuccess) output = ffOut;
+                    }
+                   
                 }
             }
 
